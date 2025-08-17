@@ -20,100 +20,107 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 20px;
         }
         .title {
             font-size: 32px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
-        .message {
-            font-size: 18px;
-            margin-bottom: 30px;
-            max-width: 600px;
-            line-height: 1.6;
+        .video-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 70vh;
+            border: 2px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
         }
-        .link {
-            color: #007bff;
-            text-decoration: none;
-            font-size: 20px;
-            padding: 15px 30px;
-            border: 2px solid #007bff;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .link:hover {
-            background-color: #007bff;
-            color: white;
-        }
-        .note {
-            font-size: 14px;
+        .status {
+            margin-top: 20px;
+            font-size: 16px;
             color: #888;
-            margin-top: 30px;
+        }
+        .error {
+            color: #ff6b6b;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ff6b6b;
+            border-radius: 5px;
+            max-width: 500px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="title">📹 Ov. Higuereta</div>
-        <div class="message">
-            Esta transmisión en vivo requiere acceso HTTP directo. 
-            Para ver la transmisión, haz clic en el enlace de abajo.
+        <div class="video-container">
+            <iframe id="stream-iframe" src="" frameborder="0" width="100%" height="100%"></iframe>
         </div>
-        <a href="http://38.43.155.242:49200" target="_blank" class="link">
-            Ver Transmisión en Vivo
-        </a>
-        <div class="note">
-            Nota: El enlace se abrirá en una nueva pestaña
-        </div>
+        <div class="status" id="status">Cargando transmisión...</div>
     </div>
     
     <script>
-        // Detectar si estamos en HTTPS (GitHub Pages) o HTTP (local)
-        if (location.protocol === 'https:') {
-            console.log('Ejecutando en HTTPS - Mostrando mensaje explicativo');
-        } else {
-            console.log('Ejecutando en HTTP - Intentando cargar stream HLS');
-            // Solo intentar HLS si estamos en HTTP (local)
-            loadHLSStream();
-        }
-        
-        function loadHLSStream() {
-            const video = document.createElement('video');
-            video.controls = true;
-            video.autoplay = true;
-            video.muted = true;
-            video.style.width = '90%';
-            video.style.maxWidth = '1200px';
-            video.style.height = '70vh';
+        // Función para cargar el stream usando diferentes métodos
+        function loadStream() {
+            const iframe = document.getElementById('stream-iframe');
+            const status = document.getElementById('status');
             
-            const container = document.querySelector('.container');
-            container.innerHTML = '';
-            container.appendChild(video);
+            // Método 1: Intentar con proxy CORS
+            const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+            const targetUrl = 'http://38.43.155.242:49200';
             
-            const videoSrc = 'http://38.43.155.242:49200/hls/stream.m3u8';
+            // Método 2: Proxy alternativo
+            const altProxy = 'https://api.allorigins.win/raw?url=';
             
-            // Cargar HLS.js solo si es necesario
-            if (typeof Hls !== 'undefined') {
-                if (Hls.isSupported()) {
-                    const hls = new Hls();
-                    hls.loadSource(videoSrc);
-                    hls.attachMedia(video);
-                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    video.src = videoSrc;
-                }
-            } else {
-                // Cargar HLS.js dinámicamente
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
-                script.onload = function() {
-                    if (Hls.isSupported()) {
-                        const hls = new Hls();
-                        hls.loadSource(videoSrc);
-                        hls.attachMedia(video);
+            // Método 3: Proxy más confiable
+            const reliableProxy = 'https://thingproxy.freeboard.io/fetch/';
+            
+            function tryProxy(proxyUrl, proxyName) {
+                status.textContent = `Intentando con ${proxyName}...`;
+                
+                iframe.onload = function() {
+                    status.textContent = `Transmisión cargada con ${proxyName}`;
+                };
+                
+                iframe.onerror = function() {
+                    status.textContent = `Error con ${proxyName}, probando siguiente...`;
+                    // Intentar siguiente proxy
+                    if (proxyName === 'CORS Anywhere') {
+                        tryProxy(altProxy, 'AllOrigins');
+                    } else if (proxyName === 'AllOrigins') {
+                        tryProxy(reliableProxy, 'ThingProxy');
+                    } else {
+                        showFallback();
                     }
                 };
-                document.head.appendChild(script);
+                
+                iframe.src = proxyUrl + targetUrl;
             }
+            
+            function showFallback() {
+                status.textContent = 'No se pudo cargar la transmisión';
+                iframe.style.display = 'none';
+                
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'error';
+                fallbackDiv.innerHTML = `
+                    <p>No se pudo cargar la transmisión debido a restricciones de CORS.</p>
+                    <p><a href="${targetUrl}" target="_blank" style="color: #007bff;">Haz clic aquí para ver la transmisión directamente</a></p>
+                `;
+                
+                document.querySelector('.video-container').appendChild(fallbackDiv);
+            }
+            
+            // Comenzar con el primer proxy
+            tryProxy(corsProxy, 'CORS Anywhere');
+        }
+        
+        // Cargar cuando la página esté lista
+        document.addEventListener('DOMContentLoaded', loadStream);
+        
+        // También intentar cargar directamente si estamos en HTTP
+        if (location.protocol === 'http:') {
+            const iframe = document.getElementById('stream-iframe');
+            iframe.src = 'http://38.43.155.242:49200';
+            document.getElementById('status').textContent = 'Cargando transmisión directa...';
         }
     </script>
 </body>
