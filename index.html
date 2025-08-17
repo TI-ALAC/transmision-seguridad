@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualizador de Transmisión</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+        .iframe-container {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="iframe-container">
+        <iframe src="http://38.43.155.242:49200" allowfullscreen></iframe>
+    </div>
+</body>
+</html>
